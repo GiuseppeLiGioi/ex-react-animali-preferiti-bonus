@@ -30,7 +30,7 @@ const animalsChoices = ["Cane", "Gatto", "Pappagallo", "Cavallo", "Panda"];
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-<!--
+    <!--
 Espandilo affinché:
 
 La vecchia prop content può essere usata per passare un componente qualsiasi.
@@ -43,98 +43,171 @@ Conferma: Aggiunge l’animale alla lista e chiude la modale.
 Annulla: Chiude la modale senza modificare la lista.
 
 Obiettivo: L’utente può aggiungere animali specifici utilizzando la modale.
+
+
+
+
+
+🎯 Bonus: Utilizzare l'API per Creare Card
+Nota: a differenza di quanto visto finora negli esempi, per accedere all'API utilizzare l'url base:
+http://localhost:3333
+al posto di:
+https://freetestapi.com/api/v1
+Ad esempio:
+http://localhost:3333/users
+per chiamare l'endpoint /users
+Clicca qui per la guida su come installare il Server API Locale!
+
+Utilizza l'API:
+/animals?search=[animalName]
+per effettuare una ricerca dell'animale basata sul contenuto dell'input: 
+Sostituisci [animalName] con il valore inserito dall'utente.
+Assicurati di gestire lo stato di caricamento mentre l'API è in fase di risposta (mostra un messaggio come "Caricamento...").
+Dal primo risultato restituito dall'array (se presente), crea un oggetto che abbia queste proprietà:
+name: Il nome dell'animale.
+description: La descrizione dell'animale (o un messaggio predefinito come "Descrizione non disponibile" se manca).
+image: L'immagine dell'animale (usa un'immagine di default se non è disponibile).
+Aggiungi l'oggetto alla lista degli animali e visualizzalo come una card, con:
+Titolo: Il nome dell'animale.
+Immagine (se presente).
+Descrizione.
+Gestione degli errori:
+Se la ricerca non restituisce risultati, informa l'utente con un messaggio di errore. (es.: "Nessun animale trovato")
+Mostra un messaggio in caso di problemi di rete o altri errori. (es.: "Errore durante la ricerca dell'animale")
+Obiettivo: Permetti agli utenti di aggiungere animali specifici utilizzando l'API per ottenere informazioni, mostrando eventuali errori in modo chiaro.
+
+
 -->
     <script type="text/babel">
-    const { useState } = React;   
+        const { useState } = React;
 
-    function Modal({
-      title, 
-      content, 
-      show = false, 
-      onClose = () => {},
-      onConfirm = () => {}
-  }){
-    const [value, setValue] = useState ('')
-    const handleChange = (e) => {
-       setValue(e.target.value)
-    }
-     const handleSubmit = () => {
-       onConfirm(value)
-       onClose()
-    }
+        function Modal({
+            title,
+            content,
+            show = false,
+            onClose = () => { },
+            onConfirm = () => { }
+        }) {
+            const [value, setValue] = useState('')
+            const handleChange = (e) => {
+                setValue(e.target.value)
+            }
+            const handleSubmit = () => {
+                onConfirm(value)
+                onClose()
+            }
 
-      return show && ReactDOM.createPortal(
-          <div className="modal-container">
-              <div className="modal">
-                  <h2>{title}</h2>
-                  <input 
-                  type="text" 
-                  value={value}
-                  placeholder="Inserisci nome dell'animale" 
-                  onChange={handleChange}/>
-              </div>
-              <div>
-                <button onClick={onClose}>
-                    Annulla
-                </button>
-                <button onClick={handleSubmit}>
-                    Conferma
-                </button>
-              </div>
-          </div>,
-          document.body
-      )
-  }
-</script>
+          const ricercaAnimale = async (nome) => {
+    console.log("Sto caricando le informazioni...");
+    return new Promise((resolve, reject) => {
+        fetch(`http://localhost:3333/animals?search=${nome}`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.length > 0) {
+                    const animaleNuovo = {
+                        name: data[0].name,
+                        description: data[0].description || "Descrizione non disponibile",
+                        image: data[0].image 
+                    };
+                    resolve(animaleNuovo);
+                } else {
+                    reject("Nessun animale trovato");
+                }
+            })
+            .catch(() => reject("Errore durante la ricerca dell'animale"));
+    });
+}
+
+
+            return show && ReactDOM.createPortal(
+                <div className="modal-container">
+                    <div className="modal">
+                        <h2>{title}</h2>
+                        <input
+                            type="text"
+                            value={value}
+                            placeholder="Inserisci nome dell'animale"
+                            onChange={handleChange} />
+                    </div>
+                    <div>
+                        <button onClick={onClose}>
+                            Annulla
+                        </button>
+                        <button onClick={() => {
+                            (async () => {
+                                try{
+                                const risultato = await ricercaAnimale(value)
+                                onConfirm(risultato);
+                                onClose()
+                                
+                                }catch(error){
+                                console.error(error)
+                                }
+                            })()
+                            
+                        }}>
+                            Conferma
+                        </button>
+
+                    </div>
+                </div>,
+                document.body
+            )
+        }
+    </script>
 
 
     <script type="text/babel">
-        
+
         const animalsChoices = ["Cane", "Gatto", "Pappagallo", "Cavallo", "Panda"];
 
         const Componente = () => {
             const [details, setDetails] = useState(false);
             const [modalOpen, setModalOpen] = useState(false);
             const [animals, setAnimals] = useState([]);
-            
-               
-        const aggiungiAnimale = (animale) => {
-            const animaleScelto = animale;
-             setAnimals([...animals, animaleScelto]);
-        }
 
-        const apriModale = () => {
-            setModalOpen(true)
-        }
-        const chiudiModale = () => {
-            setModalOpen(false)
-        }
+
+            const aggiungiAnimaleOggetto = (ogg) => {
+                const animaleScelto = { ...ogg };
+                setAnimals([...animals, animaleScelto]);
+            }
+
+            const apriModale = () => {
+                setModalOpen(true)
+            }
+            const chiudiModale = () => {
+                setModalOpen(false)
+            }
             return (
                 <div>
                     <h1>Sono il Componente</h1>
-                     <button onClick={() => {
-                        apriModale(); 
+                    <button onClick={() => {
+                        apriModale();
                         setDetails(true);
                     }
                     }>
-                            Aggiungi Animale 
+                        Aggiungi Animale
                     </button>
 
-                    <details> 
+                    <details>
                         <summary> Visualizza gli animali</summary>
-                            {details && (
-                                <ul>
-                                    {animals.map((a, index) => (
-                                        <li key={index}>{a}</li>
-                                    ))}
-                                </ul>
-                            )}
+                        {details && (
+                            <div>
+                                {animals.map((a, index) => (
+                                    <div key={index}>
+                                        <h2>{a.name}</h2>
+                                        <p>{a.description}</p>
+                                        <img src={a.image} alt={a.name} width="100" />
+                                    </div>
+                                ))}
+                            </div>
+                        )}
                     </details>
-                    <Modal 
-                    title="Inserisci nome dell'animale"
-                    show={modalOpen}
-                    onClose={chiudiModale}
-                    onConfirm={aggiungiAnimale}
+                    <Modal
+                        title="Inserisci nome dell'animale"
+                        show={modalOpen}
+                        onClose={chiudiModale}
+                        onConfirm={aggiungiAnimaleOggetto}
 
                     />
                 </div>
